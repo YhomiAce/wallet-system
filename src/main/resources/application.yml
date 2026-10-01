@@ -1,0 +1,53 @@
+spring:
+  application:
+    name: wallet-service
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5430/wallet}
+    username: ${DB_USER:wallet}
+    password: ${DB_PASSWORD:wallet}
+    hikari:
+      maximum-pool-size: 20
+      connection-timeout: 3000      # fail fast instead of queueing forever
+      max-lifetime: 1800000
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    validate-on-migrate: true
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6377}
+      timeout: 200ms                # a slow cache must never slow the API
+  jackson:
+    default-property-inclusion: non_null
+    serialization:
+      write-dates-as-timestamps: false
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
+
+server:
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+wallet:
+  cache:
+    ttl: 5m
+    key-prefix: "wallet:balance:"
+  fees:                              # illustrative: confirm current rules/tariffs before using
+    stamp-duty-kobo: 5000            # N50
+    stamp-duty-threshold-kobo: 1000000   # applies to transfers >= N10,000
+    flat-fee-kobo: 1000              # N10
+    vat-rate: 0.075                  # VAT on the fee
+  limits:
+    max-transfer-kobo: 500000000     # N5,000,000 per transaction
+  outbox:
+    poll-interval-ms: 500
+    batch-size: 100
+    channel: wallet.events
+  reconciliation:
+    cron: "0 0 2 * * *"
